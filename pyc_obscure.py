@@ -28,7 +28,7 @@ class Obscure:
         self.ispypy         : bool
         self.source_size    : int
         self.sip_hash       : int
-        self.instr_offset   : set
+        self.instr_offset   : list
 
         if filename is not None:
             self.load_pyc(filename)
@@ -52,13 +52,14 @@ class Obscure:
     def get_instr_offset_from_lnotab(self, lnotab):
         assert(type(lnotab) == bytes)
         assert(len(lnotab) & 1 == 0)
-        res = set()
+        res = []
         offset = 0
-        res.add(offset)
+        res.append(offset)
         for i in range(len(lnotab)//2):
             offset += lnotab[2 * i]
-            res.add(offset)
+            res.append(offset)
 
+        res.append(len(self.co.co_code))
         return res
 
     def _gen_obs37_opcode_from_offset(self, offset):
@@ -135,21 +136,20 @@ class Obscure:
 
     def basic_obscure(self):
         code = self.co.co_code
+        offsets = self.instr_offset
         res = b""
         index = 0
-        for rel_offset in self.instr_offset:
-            index += rel_offset
-            obs_instr = self._get_obs_instr(index)
-            res += code[index-rel_offset:index] + obs_instr
+        for i in range(1, len(offsets)):
+            obs_instr = self._get_obs_instr(len(res))
+            res += obs_instr + code[offsets[i-1]:offsets[i]]
 
-        res += code[index:]
         self.co = self.new_code_object(code=res)
 
     def write_pyc(self, filename):
         s = pack16(self.magic_int) + b"\r\n"
         s += pack32(0) + pack32(self.timestamp) + pack32(self.source_size)
         s += marshal.dumps(self.co)
-        print(s)
+        # print(s)
         with open(filename, 'wb') as fw:
             fw.write(s)
 
@@ -160,11 +160,9 @@ if __name__ == '__main__':
         filename = sys.argv[1]
         obs = Obscure(filename)
         exec(obs.co)
-        print(obs.co.co_code)
+        #print(len(obs.co.co_code), obs.co.co_code)
         obs.basic_obscure()
-        print(obs.co.co_code)
+        #print(len(obs.co.co_code), obs.co.co_code)
         obs.write_pyc('asd.pyc')
-        # exec(obs.co)
-        # exec(obs.co)
-        print(obs.co.co_code)
+        exec(obs.co)
 
