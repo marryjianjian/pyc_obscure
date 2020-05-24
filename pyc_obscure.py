@@ -134,14 +134,29 @@ class Obscure:
             tuple(cellvars),
         )
 
+    def compute_jump_offset(self, code, offset):
+        assert(type(code) == bytes)
+        assert(len(code) & 1 == 0)
+        res = b""
+        for i in range(len(code)//2):
+            op = code[2 * i]
+            para = code[2 * i + 1]
+            if op in range(110, 116):
+                res += bytes((op, para + offset))
+            else:
+                res += bytes((op, para))
+
+        return res
+
     def basic_obscure(self):
         code = self.co.co_code
         offsets = self.instr_offset
         res = b""
-        index = 0
+        added_instr_len = 0
         for i in range(1, len(offsets)):
             obs_instr = self._get_obs_instr(len(res))
-            res += obs_instr + code[offsets[i-1]:offsets[i]]
+            res += obs_instr + self.compute_jump_offset(code[offsets[i-1]:offsets[i]], added_instr_len)
+            added_instr_len += len(obs_instr)
 
         self.co = self.new_code_object(code=res)
 
@@ -165,6 +180,7 @@ class Obscure:
         assert(type(strings) == list)
         consts = self.co.co_consts + tuple([i for i in strings])
         self.co = self.new_code_object(consts=consts)
+
 
 if __name__ == '__main__':
     import sys
