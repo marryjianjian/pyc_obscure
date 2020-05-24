@@ -22,4 +22,5 @@ obs.write_pyc('obs_test.pyc')
 - support multi version of python (python3.7 only now)
 - complex obscure (not just junk JUMP), add fake control flow
 - support add consts like string
+- compute JUMP offset in loop (loop implementations differs with different version)
 
