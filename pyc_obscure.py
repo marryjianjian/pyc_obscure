@@ -153,6 +153,18 @@ class Obscure:
         with open(filename, 'wb') as fw:
             fw.write(s)
 
+    def modify_filename(self, modified_filename):
+        self.co = self.new_code_object(filename=modified_filename)
+
+    def add_string(self, string):
+        assert(type(string) == str)
+        consts = self.co.co_consts + (string,)
+        self.co = self.new_code_object(consts=consts)
+
+    def add_strings(self, strings):
+        assert(type(strings) == list)
+        consts = self.co.co_consts + tuple([i for i in strings])
+        self.co = self.new_code_object(consts=consts)
 
 if __name__ == '__main__':
     import sys
@@ -162,6 +174,8 @@ if __name__ == '__main__':
         exec(obs.co)
         #print(len(obs.co.co_code), obs.co.co_code)
         obs.basic_obscure()
+        obs.add_string('test add string')
+        obs.add_strings(['a', 'b', 'd'])
         #print(len(obs.co.co_code), obs.co.co_code)
         obs.write_pyc('asd.pyc')
         exec(obs.co)
